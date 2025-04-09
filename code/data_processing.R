@@ -23,6 +23,9 @@ dim(df)
 expr_data <- exprs(gset)
 pheno_data <- gset@phenoData@data
 expr_df <- as.data.frame(expr_data)
+hist(expr_data)
+qqnorm(expr_data)
+
 
 head(expr_df)
 head(pheno_data)
@@ -33,7 +36,6 @@ diagnosis <- pheno_data$characteristics_ch1.1
 diagnosis <- gsub("treatment: ","", diagnosis)
 
 table(diagnosis)
-
 
 # log2 transform ----------------------------
 qx <- as.numeric(quantile(ex, c(0., 0.25, 0.5, 0.75, 0.99, 1.0), na.rm=T))
@@ -46,9 +48,10 @@ LogC <- (qx[5] > 100) ||
 # if 6th item in qx - qx[1] greater than 50 &  qx[2] is positive
 if (LogC) { ex[which(ex <= 0)] <- NaN
 # if LogC is true (either OR condition is met), then assign ex values <= 0 as NaN
-ex <- log2(ex) } 
+ex<- log2(ex) } 
 # and transform ex to log2(ex)
 # if LogC were False, would that mean the data doesnt need to be transformed?? but why hm
+
 
 
 # # box-and-whisker plot ----------------------------
