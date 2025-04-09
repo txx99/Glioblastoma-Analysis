@@ -23,22 +23,37 @@ expr_df <- as.data.frame(expr_data)
 head(expr_df)
 head(pheno_data)
 
+
+
 expr_data_log <- log2(expr_data +1)
 
 diagnosis <- pheno_data$characteristics_ch1.1
-diagnosis <- gsub("treatment: ","", diagnosis)
+diagnosis <- gsub("disease state ","", diagnosis)
+diagnosis <- gsub(" ", "_", diagnosis) 
+diagnosis <- make.names(diagnosis)
+
 
 table(diagnosis)
 
+design <- model.matrix(~0 +diagnosis)
+colnames(design) <- levels(factor(diagnosis))
+
+fit <- lmFit(expr_data_log, design)
+
+contrasts <- makeContrasts(
+  contrasts ="disease_state._PD - disease_state._psPD",
+  levels = design
+)
+
+fit2 <- contrasts.fit(fit, contrasts)
+fit2 <- eBayes(fit2)
+
+results <- topTable(fit2, number = Inf, adjust.method = "BH")
+
+
+
+
 #log2 transform
-# qx <- as.numeric(quantile(ex, c(0., 0.25, 0.5, 0.75, 0.99, 1.0), na.rm=T))
-# LogC <- (qx[5] > 100) ||
-# (qx[6]-qx[1] > 50 && qx[2] > 0)
-# if (LogC) { ex[which(ex <= 0)] <- NaN
-# ex <- log2(ex) }
-
-
-
 
 
 
