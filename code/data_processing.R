@@ -16,6 +16,25 @@ ex <- exprs(gset)
 # gset@phenoData@data[["characteristics_ch1.1"]]
 
 
+summary(gset)
+dim(gset)
+dim(df)
+
+expr_data <- exprs(gset)
+pheno_data <- gset@phenoData@data
+expr_df <- as.data.frame(expr_data)
+
+head(expr_df)
+head(pheno_data)
+
+expr_data_log <- log2(expr_data +1)
+
+diagnosis <- pheno_data$characteristics_ch1.1
+diagnosis <- gsub("treatment: ","", diagnosis)
+
+table(diagnosis)
+
+
 # log2 transform ----------------------------
 qx <- as.numeric(quantile(ex, c(0., 0.25, 0.5, 0.75, 0.99, 1.0), na.rm=T))
 # determining the quantile breaks in the ex data at 0% (min), 25% quantile, etc
