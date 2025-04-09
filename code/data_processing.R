@@ -1,23 +1,22 @@
 library(tidyverse)
 library(ggplot2)
-library(DESeq2)
 library(GEOquery)
 library(limma)
 library(umap)
 
-# load series and platform data from GEO#####
 # load series and platform data from GEO
+?getGEO
+
+?makeContrasts
 
 gset <- getGEO("GSE231994", GSEMatrix =TRUE, getGPL=FALSE)
 if (length(gset) > 1) idx <- grep("GPL27956", attr(gset, "names")) else idx <- 1
 gset <- gset[[idx]]
 
-
 #assayData is expression data (not count data), therefore use edgeR/limma for DEA
 summary(gset)
 dim(gset)
 dim(df)
-
 expr_data <- exprs(gset)
 expr_df <- as.data.frame(expr_data)
 head(expr_df)
@@ -25,26 +24,17 @@ head(expr_df)
 # see disease groups being compared : PD + pseudo PD
 pheno_data <- gset@phenoData@data
 head(pheno_data)
-<<<<<<< HEAD
-
-
-
-
-expr_data_log <- log2(expr_data +1)
-
 diagnosis <- pheno_data$characteristics_ch1.1
-diagnosis <- gsub("disease state ","", diagnosis)
-diagnosis <- gsub(" ", "_", diagnosis) 
-diagnosis <- make.names(diagnosis)
-
-
+diagnosis <- gsub("treatment: ","", diagnosis)
 table(diagnosis)
 
+# expr_data_log <- log2(expr_data +1)
+
+# doing some modeling + whatnots
 design <- model.matrix(~0 +diagnosis)
 colnames(design) <- levels(factor(diagnosis))
 
 fit <- lmFit(expr_data_log, design)
-
 contrasts <- makeContrasts(
   contrasts ="disease_state._PD - disease_state._psPD",
   levels = design
@@ -52,23 +42,9 @@ contrasts <- makeContrasts(
 
 fit2 <- contrasts.fit(fit, contrasts)
 fit2 <- eBayes(fit2)
-
 results <- topTable(fit2, number = Inf, adjust.method = "BH")
 
 
-
-
-#log2 transform
-=======
-diagnosis <- pheno_data$characteristics_ch1.1
-diagnosis <- gsub("treatment: ","", diagnosis)
-table(diagnosis)
-
-# expr_data_log <- log2(expr_data +1)
-
-
-
->>>>>>> 8af54e2f5fb61badd5a10a05d95598c44b45e0af
 
 # do we need a log2 transform? ----------------------------
 # run hist on expression data to see distribution
@@ -91,7 +67,6 @@ expr_data <- log2(expr_data) }
 # if LogC were False, data distribution is already acceptable, no need to log2
 
 
-# # box-and-whisker plot
 # # box-and-whisker plot ----------------------------
 # dev.new(width=3+ncol(gset)/6, height=5)
 # par(mar=c(7,4,2,1))
@@ -99,10 +74,10 @@ expr_data <- log2(expr_data) }
 # boxplot(ex, boxwex=0.7, notch=T, main=title, outline=FALSE, las=2)
 # dev.off()
 # 
-# # expression value distribution plot
-# par(mar=c(4,4,2,1))
-# title <- paste ("GSE231994", "/", annotation(gset), " value distribution", sep ="")
-# plotDensities(ex, main=title, legend=F)
+# expression value distribution plot
+par(mar=c(4,4,2,1))
+title <- paste ("GSE231994", "/", annotation(gset), " value distribution", sep ="")
+plotDensities(expr_data, main=title, legend=F)
 # 
 # # mean-variance trend
 # ex <- na.omit(ex) # eliminate rows with NAs
@@ -118,7 +93,7 @@ expr_data <- log2(expr_data) }
 
 
 
-###PROCESSED DATA####
+###PROCESSED DATA###
 df <- read.table('GSE232050_processed_data.txt', 
                  sep = '\t',
                  header = TRUE)
