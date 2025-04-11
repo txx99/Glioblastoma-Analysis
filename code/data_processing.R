@@ -1,74 +1,56 @@
 library(tidyverse)
 library(ggplot2)
-library(DESeq2)
 library(GEOquery)
 library(limma)
 library(umap)
+library(EnhancedVolcano)
+library(clusterProfiler)
+library(enrichplot)
+library(ggplot2)
+library(ggpubr)
+library(gridExtra)
+library(org.Hs.eg.db)
 
-# load series and platform data from GEO#####
 # load series and platform data from GEO
-
-gset <- getGEO("GSE231994", GSEMatrix =TRUE, getGPL=FALSE)
+gset <- getGEO("GSE231994", GSEMatrix=TRUE, getGPL=FALSE)
 if (length(gset) > 1) idx <- grep("GPL27956", attr(gset, "names")) else idx <- 1
 gset <- gset[[idx]]
 
+# 2. Extract expression and phenotype data
+expr_data <- exprs(gset)  # Get expression matrix
+pheno_data <- pData(gset) # Get phenotype data
 
-#assayData is expression data (not count data), therefore use edgeR/limma for DEA
-summary(gset)
-dim(gset)
-dim(df)
+# 3. Clean and verify group labels
+diagnosis <- pheno_data$characteristics_ch1.1  # choses the characteristics we are looking at, disease state
+diagnosis <- gsub("disease state: ", "", diagnosis)
+print(table(diagnosis))  # Verify groups (should show PD vs psPD)
 
-expr_data <- exprs(gset)
-expr_df <- as.data.frame(expr_data)
-head(expr_df)
+# 4. Create design matrix
+design <- model.matrix(~0 + diagnosis)
+colnames(design) <- make.names(levels(factor(diagnosis))) # Ensure valid names
+print(colnames(design))  # Should show [1] "PD"   "psPD"
 
-# see disease groups being compared : PD + pseudo PD
-pheno_data <- gset@phenoData@data
-head(pheno_data)
-<<<<<<< HEAD
+# 5. LIMMA analysis
+fit <- lmFit(expr_data, design)
+contrast_matrix <- makeContrasts(PD - psPD, levels=design)
+fit2 <- contrasts.fit(fit, contrast_matrix)
+fit2 <- eBayes(fit2)  ##Normalize the data use bayesian distribution
 
+# 6. Get results (top differentially expressed genes)
+results <- topTable(fit2, number=Inf, adjust.method="BH")
+sig_genes <- results[results$adj.P.Val < 0.05 & abs(results$logFC) > 1, ]
 
-
-
-expr_data_log <- log2(expr_data +1)
-
-diagnosis <- pheno_data$characteristics_ch1.1
-diagnosis <- gsub("disease state ","", diagnosis)
-diagnosis <- gsub(" ", "_", diagnosis) 
-diagnosis <- make.names(diagnosis)
-
-
-table(diagnosis)
-
-design <- model.matrix(~0 +diagnosis)
-colnames(design) <- levels(factor(diagnosis))
-
-fit <- lmFit(expr_data_log, design)
-
-contrasts <- makeContrasts(
-  contrasts ="disease_state._PD - disease_state._psPD",
-  levels = design
-)
-
-fit2 <- contrasts.fit(fit, contrasts)
-fit2 <- eBayes(fit2)
-
-results <- topTable(fit2, number = Inf, adjust.method = "BH")
+# 7. Save results
+write.csv(results, "DE_results_PD_vs_psPD.csv")
 
 
+## bASIC Volcano Plot
+ggplot(results, aes(logFC, -log10(adj.P.Val))) +
+  geom_point(aes(color=abs(logFC) > 1 & adj.P.Val < 0.05)) +
+  scale_color_manual(values=c("gray","red")) +
+  geom_vline(xintercept=c(-1,1), linetype="dashed")
 
 
-#log2 transform
-=======
-diagnosis <- pheno_data$characteristics_ch1.1
-diagnosis <- gsub("treatment: ","", diagnosis)
-table(diagnosis)
-
-# expr_data_log <- log2(expr_data +1)
-
-
-
->>>>>>> 8af54e2f5fb61badd5a10a05d95598c44b45e0af
 
 # do we need a log2 transform? ----------------------------
 # run hist on expression data to see distribution
@@ -91,7 +73,6 @@ expr_data <- log2(expr_data) }
 # if LogC were False, data distribution is already acceptable, no need to log2
 
 
-# # box-and-whisker plot
 # # box-and-whisker plot ----------------------------
 # dev.new(width=3+ncol(gset)/6, height=5)
 # par(mar=c(7,4,2,1))
@@ -118,10 +99,8 @@ expr_data <- log2(expr_data) }
 
 
 
-###PROCESSED DATA####
-df <- read.table('GSE232050_processed_data.txt', 
-                 sep = '\t',
-                 header = TRUE)
+###PROCESSED DATA###
+
 
 
 
