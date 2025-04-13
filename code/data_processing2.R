@@ -1,41 +1,76 @@
-library(tidyverse)
-library(ggplot2)
-library(GEOquery)
-library(limma)
-library(umap)
-library(EnhancedVolcano)
-library(clusterProfiler)
-library(enrichplot)
-library(ggplot2)
-library(ggpubr)
-library(gridExtra)
-library(org.Hs.eg.db)
+library(tidyverse)           # Data wrangling (contains dplyr, ggplot2,...)
+# library(ggplot2)           # For plotting, redundant as it's already in tidyverse
+library(GEOquery)            # To download datasets from GEO
+library(limma)               # DEA (linear models for microarrays but usable for RNA-seq)
+# library(umap)              # UMAP (non-linear dimensionality reduction)
+library(EnhancedVolcano)     # To make more beautiful volcano plots (not used below)
+# library(clusterProfiler)   # Enrichment analysis (GO, KEGG)
+# library(enrichplot)        # Plotting enrichment plot
+# library(ggplot2)             
+library(ggpubr)              # To make publication-ready plot
+library(gridExtra)           # Combine ggplots
+library(org.Hs.eg.db)        # Human gene annotations
 
-# load series and platform data from GEO
-
+# Load data set from GEO (not the platform info).
+# In case the dataset is associated with multiple platforms, 
+# we specify the GLP (platform).
 gset <- getGEO("GSE231994", GSEMatrix=TRUE, getGPL=FALSE)
-if (length(gset) > 1) idx <- grep("GPL27956", attr(gset, "names")) else idx <- 1
-gset <- gset[[idx]]
+if (length(gset) > 1) idx <- grep("GPL27956", attr(gset, "names")) else idx <- 1 #if >1, idx = location of 'GPL27956' under gset 'names', otherwise idx=1 
+gset <- gset[[idx]] # gset <- content of gset[[data folder of interest]]. basically removes one extraneous level of folders; if length(gset) > 1 , has multiple folders --> wanted the folder with GPL2795 in title. 
 
 # 2. Extract expression and phenotype data
-expr_data <- exprs(gset)  # Get expression matrix
-pheno_data <- pData(gset) # Get phenotype data
+expr_data <- exprs(gset)  # Get expression matrix as df
+pheno_data <- pData(gset) # Get phenotype data as df
 
 # 3. Clean and verify group labels
-diagnosis <- pheno_data$characteristics_ch1.1  # choses the characteristics we are looking at, disease state
-diagnosis <- gsub("disease state: ", "", diagnosis)
-print(table(diagnosis))  # Verify groups (should show PD vs psPD)
+diagnosis <- pheno_data$characteristics_ch1.1  # chooses the characteristics we are looking at (diagnosis: PD - psPD). (but doesnt retain patient ID ??)
+diagnosis <- gsub("disease state: ", "", diagnosis) #pattern, replacement, x ; delete all "disease state: " text from diagnosis
+print(table(diagnosis))  # Verify groups (should show PD vs psPD) 
+# ^^ this makes a list but no patient IDs. vv made a df instead w patient IDs
+diagnosis_df<- pheno_data %>% dplyr::select(characteristics_ch1.1) # chooses the characteristics we are looking at (diagnosis: PD - psPD).
+diagnosis_df$characteristics_ch1.1 <- gsub("disease state: ", "", diagnosis_df$characteristics_ch1.1) #pattern, replacement, x ; delete all "disease state: " text from diagnosis
+print(table(diagnosis_df)) # Verify groups (should show PD vs psPD)
+diagnosis<-diagnosis_df$characteristics_ch1.1
 
-# 4. Create design matrix
-design <- model.matrix(~0 + diagnosis)
-colnames(design) <- make.names(levels(factor(diagnosis))) # Ensure valid names
+# 4. Create design matrix WITHOUT INTERCEPT (each group gets its own column)
+# First we will make a design matrix WITHOUT INTERCEPT (each group gets its own column). 
+# The intercept is essentially the "reference" (or baseline) group, from which 
+# we will base the comparisons on (example: evaluate how different group B is 
+# compared to group A). In this case if we make a design matrix with intercept, 
+# the 'PD' group will become the baseline and essentially "locks" the comparison 
+# to only seeing the relative difference from 'psPD' to 'PD'.
+# This will prevents any other down-stream customization for analysis 
+# (psPD to PD, PD to psPD, psPD/2 to PD,...), hence why we need a design matrix WITHOUT intercept.
+design <- model.matrix(~0 + diagnosis, diagnosis_df) # makes each diagnosis into a column, allocates patients to one or the other column
+colnames(design) <- make.names(levels(factor(diagnosis))) # Ensure valid names; colnames as type factor (= categories) 
+# Name the columns based on the values in 'diagnosis'.
+# factor() to convert the character values into categorical values.
+# levels() to extract the unique categorical values/ group labels.
+# make.names() to clean up the values to make it appropriate to use as column names
+# (remove white space, parenthesis,...).
+# It assigns the column name order by alphabetical order.
+# So this will work with the design matrix we made as the column is also assigned 
+# based on alphabetical order.
+# Or just this:
+# colnames(design) <- c("PD", "psPD")
 print(colnames(design))  # Should show [1] "PD"   "psPD"
 
+
 # 5. LIMMA analysis
-fit <- lmFit(expr_data, design)
-contrast_matrix <- makeContrasts(PD - psPD, levels=design)
-fit2 <- contrasts.fit(fit, contrast_matrix)
-fit2 <- eBayes(fit2)  ##Normalize the data use bayesian distribution
+fit <- lmFit(expr_data, design)  # Linear model for large dataset. 
+contrast_matrix <- makeContrasts(PD - psPD, levels=design) # Define the comparison.
+# Here we compare the average expression in PD, MINUS the average expression in psPD.
+# AKA to compare the gene expression in PD relative to psPD.
+# levels=design is telling the program to use the columns of the design matrix 
+# as the basis for the contrast. 
+# So the column names become the available LEVELS to use for comparison.
+# We can also do multiple contrasts: 
+# x = c("psPD-PD", "(psPD+PD)/2")
+# contrast_matrix <- makeContrasts(contrast = x, levels = design)
+fit2 <- contrasts.fit(fit, contrast_matrix) # Applies the contrast to the linear model.
+# This will give us the log fold change, standard errors, t-statistics, and residual degrees of freedom.
+fit2 <- eBayes(fit2)  ## Normalize the data use Bayesian distribution.
+# This also give us the p-value.
 
 # 6. Get results (top differentially expressed genes)
 results <- topTable(fit2, number=Inf, adjust.method="BH")
@@ -44,12 +79,20 @@ sig_genes <- results[results$adj.P.Val < 0.05 & abs(results$logFC) > 1, ]
 # 7. Save results
 write.csv(results, "DE_results_PD_vs_psPD.csv")
 
-
 ## bASIC Volcano Plot
 ggplot(results, aes(logFC, -log10(adj.P.Val))) +
   geom_point(aes(color=abs(logFC) > 1 & adj.P.Val < 0.05)) +
   scale_color_manual(values=c("gray","red")) +
-  geom_vline(xintercept=c(-1,1), linetype="dashed")
+  geom_vline(xintercept=c(-1,1), linetype="dashed") +
+  geom_hline(yintercept = -log10(0.05), linetype="dashed")
+
+
+
+
+
+
+
+
 
 ?getGEO
 
@@ -96,10 +139,6 @@ results <- topTable(fit2, number = Inf, adjust.method = "BH")
 
 
 
-
-
-
->>>>>>> 5375a7c528a0f0cf24511f36b44d52adacbc6fa6
 
 
 
@@ -150,32 +189,8 @@ plotDensities(expr_data, main=title, legend=F)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ###PROCESSED DATA###
-<<<<<<< HEAD
 
-=======
 df <- read.table('GSE232050_processed_data.txt', 
-                 sep = '\t',
-                 header = TRUE)
->>>>>>> 5375a7c528a0f0cf24511f36b44d52adacbc6fa6
-
-
-
+                   sep = '\t',
+                   header = TRUE)
