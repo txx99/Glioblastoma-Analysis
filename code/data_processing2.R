@@ -1,18 +1,19 @@
-library(tidyverse)
-library(ggplot2)
-library(GEOquery)
-library(limma)
-library(umap)
-library(EnhancedVolcano)
-library(clusterProfiler)
-library(enrichplot)
-library(ggplot2)
-library(ggpubr)
-library(gridExtra)
-library(org.Hs.eg.db)
+library(tidyverse)           # Data wrangling (contains dplyr, ggplot2,...)
+# library(ggplot2)           # For plotting, redundant as it's already in tidyverse
+library(GEOquery)            # To download datasets from GEO
+library(limma)               # DEA (linear models for microarrays but usable for RNA-seq)
+# library(umap)              # UMAP (non-linear dimensionality reduction)
+library(EnhancedVolcano)     # To make more beautiful volcano plots (not used below)
+# library(clusterProfiler)   # Enrichment analysis (GO, KEGG)
+# library(enrichplot)        # Plotting enrichment plot
+# library(ggplot2)             
+library(ggpubr)              # To make publication-ready plot
+library(gridExtra)           # Combine ggplots
+library(org.Hs.eg.db)        # Human gene annotations
 
-# load series and platform data from GEO
-
+# Load data set from GEO (not the platform info).
+# In case the dataset is associated with multiple platforms, 
+# we specify the GLP (platform).
 gset <- getGEO("GSE231994", GSEMatrix=TRUE, getGPL=FALSE)
 if (length(gset) > 1) idx <- grep("GPL27956", attr(gset, "names")) else idx <- 1
 gset <- gset[[idx]]
@@ -21,21 +22,49 @@ gset <- gset[[idx]]
 expr_data <- exprs(gset)  # Get expression matrix
 pheno_data <- pData(gset) # Get phenotype data
 
-# 3. Clean and verify group labels
-diagnosis <- pheno_data$characteristics_ch1.1  # choses the characteristics we are looking at, disease state
+# 3. Clean and verify group labels (PD vs psPD)
+diagnosis <- pheno_data$characteristics_ch1.1  # chooses the characteristics (diagnosis: PD - psPD).
 diagnosis <- gsub("disease state: ", "", diagnosis)
 print(table(diagnosis))  # Verify groups (should show PD vs psPD)
 
-# 4. Create design matrix
+# 4. Create design matrix WITHOUT INTERCEPT (each group gets its own column)
+# First we will make a design matrix WITHOUT INTERCEPT (each group gets its own column). 
+# The intercept is essentially the "reference" (or baseline) group, from which 
+# we will base the comparisons on (example: evaluate how different group B is 
+# compared to group A). In this case if we make a design matrix with intercept, 
+# the 'PD' group will become the baseline and essentially "locks" the comparison 
+# to only seeing the relative difference from 'psPD' to 'PD'.
+# This will prevents any other down-stream customization for analysis 
+# (psPD to PD, PD to psPD, psPD/2 to PD,...), hence why we need a design matrix WITHOUT intercept.
 design <- model.matrix(~0 + diagnosis)
 colnames(design) <- make.names(levels(factor(diagnosis))) # Ensure valid names
+# Name the columns based on the values in 'diagnosis'.
+# factor() to convert the character values into categorical values.
+# levels() to extract the unique categorical values/ group labels.
+# make.names() to clean up the values to make it appropriate to use as column names
+# (remove white space, parenthesis,...).
+# It assigns the column name order by alphabetical order.
+# So this will work with the design matrix we made as the column is also assigned 
+# based on alphabetical order.
+# Or just this:
+# colnames(design) <- c("PD", "psPD")
 print(colnames(design))  # Should show [1] "PD"   "psPD"
 
 # 5. LIMMA analysis
-fit <- lmFit(expr_data, design)
-contrast_matrix <- makeContrasts(PD - psPD, levels=design)
-fit2 <- contrasts.fit(fit, contrast_matrix)
-fit2 <- eBayes(fit2)  ##Normalize the data use bayesian distribution
+fit <- lmFit(expr_data, design)  # Linear model for large dataset. 
+contrast_matrix <- makeContrasts(PD - psPD, levels=design) # Define the comparison.
+# Here we compare the average expression in PD, MINUS the average expression in psPD.
+# AKA to compare the gene expression in PD relative to psPD.
+# levels=design is telling the program to use the columns of the design matrix 
+# as the basis for the contrast. 
+# So the column names become the available LEVELS to use for comparison.
+# We can also do multiple contrasts: 
+# x = c("psPD-PD", "(psPD+PD)/2")
+# contrast_matrix <- makeContrasts(contrast = x, levels = design)
+fit2 <- contrasts.fit(fit, contrast_matrix) # Applies the contrast to the linear model.
+# This will give us the log fold change, standard errors, t-statistics, and residual degrees of freedom.
+fit2 <- eBayes(fit2)  ## Normalize the data use Bayesian distribution.
+# This also give us the p-value.
 
 # 6. Get results (top differentially expressed genes)
 results <- topTable(fit2, number=Inf, adjust.method="BH")
@@ -49,7 +78,14 @@ write.csv(results, "DE_results_PD_vs_psPD.csv")
 ggplot(results, aes(logFC, -log10(adj.P.Val))) +
   geom_point(aes(color=abs(logFC) > 1 & adj.P.Val < 0.05)) +
   scale_color_manual(values=c("gray","red")) +
-  geom_vline(xintercept=c(-1,1), linetype="dashed")
+  geom_vline(xintercept=c(-1,1), linetype="dashed") +
+  geom_hline(yintercept = -log10(0.05), linetype="dashed")
+
+
+
+
+
+
 
 ?getGEO
 
