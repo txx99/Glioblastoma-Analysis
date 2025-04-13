@@ -10,47 +10,57 @@ gset <- getGEO("GSE231994", GSEMatrix =TRUE, getGPL=FALSE)
 if (length(gset) > 1) idx <- grep("GPL27956", attr(gset, "names")) else idx <- 1
 gset <- gset[[idx]]
 
-#assayData is already expression data (not count data), therefore use edgeR/limma
-ex <- exprs(gset)
-# now want to look at gene expression difference bw true + pseudo PD patients
-# gset@phenoData@data[["characteristics_ch1.1"]]
-
-
+#assayData is expression data (not count data), therefore use edgeR/limma for DEA
 summary(gset)
 dim(gset)
 dim(df)
-
 expr_data <- exprs(gset)
-pheno_data <- gset@phenoData@data
 expr_df <- as.data.frame(expr_data)
+
 hist(expr_data)
 qqnorm(expr_data)
 
 
 head(expr_df)
+
+# see disease groups being compared : PD + pseudo PD
+pheno_data <- gset@phenoData@data
 head(pheno_data)
-
-expr_data_log <- log2(expr_data +1)
-
 diagnosis <- pheno_data$characteristics_ch1.1
 diagnosis <- gsub("treatment: ","", diagnosis)
-
 table(diagnosis)
+
 
 # log2 transform ----------------------------
 qx <- as.numeric(quantile(ex, c(0., 0.25, 0.5, 0.75, 0.99, 1.0), na.rm=T))
+
+# expr_data_log <- log2(expr_data +1)
+
+
+
+
+# do we need a log2 transform? ----------------------------
+# run hist on expression data to see distribution
+hist(expr_data)
+
+qx <- as.numeric(quantile(expr_data, c(0., 0.25, 0.5, 0.75, 0.99, 1.0), na.rm=T))
+
 # determining the quantile breaks in the ex data at 0% (min), 25% quantile, etc
 # stored in qx as vector 
 # na.rm=T remove na values
+
+# Conditions for performing log2 transform
 LogC <- (qx[5] > 100) ||
   (qx[6]-qx[1] > 50 && qx[2] > 0)
 # if 5th item in qx (99th percentile) value > 100 OR 
 # if 6th item in qx - qx[1] greater than 50 &  qx[2] is positive
-if (LogC) { ex[which(ex <= 0)] <- NaN
+if (LogC) { expr_data[which(expr_data <= 0)] <- NaN
 # if LogC is true (either OR condition is met), then assign ex values <= 0 as NaN
+
 ex<- log2(ex) } 
+
 # and transform ex to log2(ex)
-# if LogC were False, would that mean the data doesnt need to be transformed?? but why hm
+# if LogC were False, data distribution is already acceptable, no need to log2
 
 
 
