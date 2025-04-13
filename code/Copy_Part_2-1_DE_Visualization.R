@@ -14,6 +14,7 @@ library(ggplot2)
 library(ggpubr)
 library(gridExtra)
 library(org.Hs.eg.db)
+library(DOSE)
 
 # ========== Work directory ==============
 #setwd("Your Working Directory")
@@ -52,7 +53,8 @@ res_merged <- merge(res, IDs, by.x = "Symbol", by.y = "SYMBOL")
 rownames(res_merged) <- res_merged$Symbol
 
 # Create named vector-----------------------------------------------
-# Now we create a ranked list
+# Now we create a named ranked list/ vector for tools like gseGO() or fgsea(), 
+# which expects a named numeric vector of log fold change.
 #gene_list <- dplyr::select(res_merged, logFC) #nvm this makes df of logFC values vs rownames(Symbol)
 gene_list<- res_merged$logFC 
 # makes a vector of logFC values
@@ -64,28 +66,63 @@ names(gene_list) <- res_merged$ENTREZID
 gene_list <- gene_list[!is.na(names(gene_list))]
 # if colname in gene_list is NA, do not save it
 gene_list <- gene_list[!duplicated(names(gene_list))]
-# if colname appears twice, do not save it (do not save either of them...?)
+# if colname appears twice, save only the first instance.
 
-# Sort descending (required by fgsea)
+# Sort descending (required by fgsea and clusterProfiler for GSEA)
 gene_list <- sort(gene_list, decreasing = TRUE)
 
-# names(gene_list) <- IDs$ENTREZID
-# gene_list = na.omit(sort(gene_list, decreasing = TRUE))
+
+# GENE ONTOLOGY!
+# gseGO() randomly shuffles the ranked gene list over and over and calculate 
+# the enrichment score of those randomly generated list.
+# So if the actual enrichment score is much higher than those random gene lists, 
+# then it means our results is statistically significant.
+# However, because of that random permutation, the analysis can differ slightly 
+# everytime we run the code.
+# To ensure the consistency, we'll run set.seed() and set the seed parameter in 
+# gseGO() to TRUE.
 set.seed(1234)
 gse <- gseGO(geneList=gene_list, 
-             ont ="ALL", 
-             keyType = "ENTREZID", 
-             pvalueCutoff = 0.05, 
-             verbose = TRUE, 
-             OrgDb = hs, 
-             seed = TRUE,
-             pAdjustMethod = "none")
+             ont ="ALL",              # Ontology: biological process (BP), cellular components (CC), molecular function (MF) or all 3 (ALL)
+             keyType = "ENTREZID",    # Gene list is named by Entrez IDs
+             pvalueCutoff = 0.05,     # Only keep GO terms with p < 0.05
+             verbose = TRUE,          # Print progress in console
+             OrgDb = hs,              # Organism database: human
+             seed = TRUE,             # Makes the permutation process reproducible
+             pAdjustMethod = "none")  # "none" for raw p-value or "BH" (Benjamin-Hochberg) for FDR correction.
+
 
 #Visualize gene enrichment
-require(DOSE)
-dotplot(gse, showCategory=10, split=".sign") + facet_grid(.~.sign)
-## RATHER THAN ACTIVATED VS SUPPRESSED, want to make this psPD vs PD.=======
+dotplot(gse,                # GSEA results
+        showCategory=10,    # Show top 10 most significantly enriched gene sets
+        split=".sign") +    # Splits the plot into 2 frame, one activated/up-regulated and one suppressed/down-regulated.
+                            # If we don't split, the plot only shows ranking of enrichment score or stat significance, 
+                            # without accounting for whether the gene set is up or down-regulated.
+                            # Then we can't see which pathways are more active in PD or psPD.
+  facet_grid(.~.sign)       # facet_grid(row~column): on 1 row, split the plot into columns based on the signs (activated vs suppressed). 
+
+
+
+## RATHER THAN ACTIVATED VS SUPPRESSED, want to make this psPD vs PD.
+# Nguyen: So I think the author just cropped out the "activated" and "suppressed" 
+# part to make it more comprehensible for readers. 
+# During DEA using limma, we set the contrast to PD - psPD, which is to see where
+# PD stands relative to psPD.
+# So if a gene set is up-regulated in PD compared to psPD, the pathway is "activated",
+# while down-regulated gene set in PD relative to psPD is "suppressed"
+# To explain this in a different way:
+# the "activated" pathways correspond to gene sets that are more upregulated in PD, 
+# while "suppressed" pathway correspond to gene sets that are more upregulated in psPD.
+
 # and also can adjust scale to be 0-0.8 like in the source image 
+
+
+
+
+
+
+
+
 
 
 
