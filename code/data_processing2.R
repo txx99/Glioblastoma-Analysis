@@ -23,14 +23,10 @@ expr_data <- exprs(gset)  # Get expression matrix as df
 pheno_data <- pData(gset) # Get phenotype data as df
 
 # 3. Clean and verify group labels
-diagnosis <- pheno_data$characteristics_ch1.1  # chooses the characteristics we are looking at (diagnosis: PD - psPD). (but doesnt retain patient ID ??)
-diagnosis <- gsub("disease state: ", "", diagnosis) #pattern, replacement, x ; delete all "disease state: " text from diagnosis
-print(table(diagnosis))  # Verify groups (should show PD vs psPD) 
-# ^^ this makes a list but no patient IDs. vv made a df instead w patient IDs
 diagnosis_df<- pheno_data %>% dplyr::select(characteristics_ch1.1) # chooses the characteristics we are looking at (diagnosis: PD - psPD).
-diagnosis_df$characteristics_ch1.1 <- gsub("disease state: ", "", diagnosis_df$characteristics_ch1.1) #pattern, replacement, x ; delete all "disease state: " text from diagnosis
+diagnosis_df$characteristics_ch1.1 <- gsub("disease state: ", "", diagnosis_df$characteristics_ch1.1) #pattern, replacement, x ; delete all "disease state: " text from diagnosis observations
 print(table(diagnosis_df)) # Verify groups (should show PD vs psPD)
-diagnosis<-diagnosis_df$characteristics_ch1.1
+diagnosis<-diagnosis_df$characteristics_ch1.1 # list for downstream use
 
 # 4. Create design matrix WITHOUT INTERCEPT (each group gets its own column)
 # First we will make a design matrix WITHOUT INTERCEPT (each group gets its own column). 
@@ -42,7 +38,7 @@ diagnosis<-diagnosis_df$characteristics_ch1.1
 # This will prevents any other down-stream customization for analysis 
 # (psPD to PD, PD to psPD, psPD/2 to PD,...), hence why we need a design matrix WITHOUT intercept.
 design <- model.matrix(~0 + diagnosis, diagnosis_df) # makes each diagnosis into a column, allocates patients to one or the other column
-colnames(design) <- make.names(levels(factor(diagnosis))) # Ensure valid names; colnames as type factor (= categories) 
+colnames(design) <- make.names(levels(factor(diagnosis))) # Ensure valid names; colnames as factor type (= categories) 
 # Name the columns based on the values in 'diagnosis'.
 # factor() to convert the character values into categorical values.
 # levels() to extract the unique categorical values/ group labels.
@@ -55,10 +51,9 @@ colnames(design) <- make.names(levels(factor(diagnosis))) # Ensure valid names; 
 # colnames(design) <- c("PD", "psPD")
 print(colnames(design))  # Should show [1] "PD"   "psPD"
 
-
 # 5. LIMMA analysis
-fit <- lmFit(expr_data, design)  # Linear model for large dataset. 
-contrast_matrix <- makeContrasts(PD - psPD, levels=design) # Define the comparison.
+fit <- lmFit(expr_data, design)  # Linear model for large dataset.  ## is it cross matching the sample names?
+contrast_matrix <- makeContrasts(PD - psPD, levels=design) # Defines the names of the parameters to be used downstream for contrast.
 # Here we compare the average expression in PD, MINUS the average expression in psPD.
 # AKA to compare the gene expression in PD relative to psPD.
 # levels=design is telling the program to use the columns of the design matrix 
