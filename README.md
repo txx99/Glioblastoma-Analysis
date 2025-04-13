@@ -10,6 +10,6 @@ https://github.com/WesleyWang913/Wang_et_al_2023_Acta_Neuro_Comms_Code?tab=readm
 
 Source Data:
 Fig 2. Bulk nCounter expressional - GSE231994
-https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi
+https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE231994
 Fig 5. GeoMx spatial data - GSE232050
 https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE232050
