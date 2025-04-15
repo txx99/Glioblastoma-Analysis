@@ -17,6 +17,7 @@ library(gridExtra)           # Combine ggplots
 library(org.Hs.eg.db)        # Human gene annotations
 
 # library(EnhancedVolcano)   # To make more beautiful volcano plots (not used below)
+library(EnhancedVolcano)   # To make more beautiful volcano plots 
 library(clusterProfiler)     # Enrichment analysis (GO, KEGG)
 library(enrichplot)          # Plotting enrichment plot
 # library(ggpubr)
@@ -136,7 +137,39 @@ ggplot(results, aes(logFC, -log10(adj.P.Val))) +
   geom_vline(xintercept=c(-1,1), linetype="dashed") +
   geom_hline(yintercept = -log10(0.05), linetype="dashed")
 ```
+###9 Enhanced Volcano Plot for Gene Expression analysis(Upregulated and Downregulated Genes)
 
+The enhanced volcano plot shows the overall significant gene expression, with pvalue >0.05.
+
+The right side shows the up-regulated genes(in red) that have a log fold change of >0; where these genes are unregulated in psPD when compared to pd.
+
+Whereas the left side shows the down regulated genes that have a log fold change of <0; where these genes are down regulated in psPD when compared to pd.
+
+Both up-regulated and down regulated genes are important to observe to aid in the understanding of the difference in gene expression when comparing the pseudo pd to actual pd in patients. Helps us develop patterns of recognition of psPD cases based on the state of the gene (upregualted vs downregulated)
+
+```{r enhanced volcano plot, expression analysis of pd vs psPD}
+
+EnhancedVolcano(res,
+                lab = rownames(res),                       # Probe IDs as labels
+                x = 'logFC',          
+                y = 'P.Value', 
+                ylim = c(0, 10),                           # Sets y-axis limit to -log10(p) = 10
+                xlab = bquote(~Log[2]~ 'fold change'),     #label for x axis
+                ylab = bquote(~-Log[10]~italic(P)),        #label for y axix
+                title = 'PD vs psPD Differential Expression',
+                subtitle = "Enhanced Volcano using limma",
+                subtitleLabSize = 10,                      #font size of subtitle
+                FCcutoff = 1,                              # Fold change threshold (|log2FC| > 1)
+                pCutoff = 0.05,                            # Significance threshold
+                pointSize = 1,                             #size of plot points
+                labSize = 3,                               #size of labels for plot points
+                col = c("black", "grey30", "royalblue", "red2"),
+                colAlpha = 0.7,
+                legendPosition = 'right')+
+  scale_x_continuous(trans = 'reverse') +                  # Properly reverses x-axis
+  theme_minimal(base_size = 14)
+
+```
 
 
 # Part B: Gene Set Enrichment Analysis
