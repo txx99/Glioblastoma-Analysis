@@ -106,7 +106,7 @@ fit2 <- eBayes(fit2)
 ```
 
 
-# 6. Get results (top differentially expressed genes)
+## 6. Get results (top differentially expressed genes)
 Extract results using topTable() to identify significant genes.
 
 topTable extracts top ranked genes from fit2 lm
@@ -124,12 +124,12 @@ adjusted p-value < 0.05 and absolute of log fold-change greater than 1.
 
 We look at absolute value bc log fold-change is positive for upregulation and negative for downregulation, and we care about both.
 
-# 7. Save results.
+## 7. Save results.
 ```{r export_results}
 write.csv(results, "DE_results_PD_vs_psPD.csv") 
 ```
 
-# 8. Visualization with Basic Volcano Plot.
+## 8. Visualization with Basic Volcano Plot.
 ```{r basic_volcano_plot}
 ggplot(results, aes(logFC, -log10(adj.P.Val))) +
   geom_point(aes(color=abs(logFC) > 1 & adj.P.Val < 0.05)) +
@@ -137,7 +137,7 @@ ggplot(results, aes(logFC, -log10(adj.P.Val))) +
   geom_vline(xintercept=c(-1,1), linetype="dashed") +
   geom_hline(yintercept = -log10(0.05), linetype="dashed")
 ```
-###9 Enhanced Volcano Plot for Gene Expression analysis(Upregulated and Downregulated Genes)
+## 9 Enhanced Volcano Plot for Gene Expression analysis(Upregulated and Downregulated Genes)
 
 The enhanced volcano plot shows the overall significant gene expression, with pvalue >0.05.
 
@@ -149,8 +149,8 @@ Both up-regulated and down regulated genes are important to observe to aid in th
 
 ```{r enhanced volcano plot, expression analysis of pd vs psPD}
 
-EnhancedVolcano(res,
-                lab = rownames(res),                       # Probe IDs as labels
+EnhancedVolcano(results,
+                lab = rownames(results),                       # Probe IDs as labels
                 x = 'logFC',          
                 y = 'P.Value', 
                 ylim = c(0, 10),                           # Sets y-axis limit to -log10(p) = 10
@@ -166,7 +166,7 @@ EnhancedVolcano(res,
                 col = c("black", "grey30", "royalblue", "red2"),
                 colAlpha = 0.7,
                 legendPosition = 'right')+
-  scale_x_continuous(trans = 'reverse') +                  # Properly reverses x-axis
+#  scale_x_continuous(trans = 'reverse') +                  # Properly reverses x-axis
   theme_minimal(base_size = 14)
 
 ```
