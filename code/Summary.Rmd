@@ -72,7 +72,7 @@ These diagnoses are assigned to the variable 'diagnosis' as a list for downstrea
 ## 4. Create design matrix WITHOUT INTERCEPT (each group gets its own column).
 ```{r design_matrix}
 design <- model.matrix(~0 + diagnosis, diagnosis_df) 
-colnames(design) <- make.names(levels(factor(diagnosis))) 
+colnames(design) <- make.names(levels(factor(diagnosis))) #turn diagnosis list entries into factors for categorization
 print(colnames(design))
 all(colnames(expr_data) == rownames(design))
 ```
@@ -81,9 +81,9 @@ To work with limma's DEA, we first need a design matrix. We made a design matrix
 
 If we make a design matrix with intercept, the 'PD' group will become the baseline and essentially "locks" the comparison to only seeing the relative difference from 'psPD' to 'PD'. This will prevent any other down-stream customization of analysis (psPD to PD, PD to psPD, psPD/2 to PD,...), hence why we needed a design matrix WITHOUT intercept.
 
-Then we needed to correctly name the column names as the values within the diagnosis column ('PD' or 'psPD'). First we converted the values in 'diagnosis' column to categorical factors, extracted those unique factors, cleaned up those factors to make it appropriate for column names (by removing white space, parenthesis,...). 
+Then we needed to correctly name the columns by diagnosis ('PD' or 'psPD'). First we converted the values in 'diagnosis' to categorical factors, extracted those unique factors, cleaned up those factors to make it appropriate for column names (by removing white space, parenthesis,...). 
 
-This way, the column names were assigned by alphabetical order, which also worked with the design matrix was also made based on alphabetical order.
+This way, the column names were assigned by alphabetical order, which worked because the design matrix was also made based on alphabetical order.
 
 Before proceeding with DEA, we need to check if the column names of expression data and row names of design matrix aligns properly, as those contain the sample names. This is required by lmFit! If they don't align, we can reorder it:
 expr_data <- expr_data[, rownames(design)]
