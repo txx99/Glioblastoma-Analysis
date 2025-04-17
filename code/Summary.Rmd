@@ -34,9 +34,9 @@ gset <- getGEO("GSE231994", GSEMatrix=TRUE, getGPL=FALSE)
 if (length(gset) > 1) idx <- grep("GPL27956", attr(gset, "names")) else idx <- 1 
 gset <- gset[[idx]] 
 ```
-If > 1 (multiple datasets), idx = location of 'GPL27956' under gset 'names', otherwise idx = 1. 
+If the length of gset is >1, that means there were multiple dataset folders downloaded. In this case, we only want the data from the folder labeled GLP27956. Otherwise, if there is only one folder, we do not need to select a folder. 
+gset[[idx]] extracts the data from the desired folder, effectively erasing one extraneous layer of categorization.
 
-gset <- content of gset[[data folder of interest]]. basically removes one extraneous level of folders; if length(gset) > 1 , has multiple folders --> wanted the folder with GPL27956 in title.
 
 Some data exploratory to decide analysis method:
 ```{r exploration, echo=TRUE}
@@ -46,7 +46,7 @@ expr_data <- exprs(gset)
 expr_df <- as.data.frame(expr_data)
 head(expr_df)
 ```
-The assayData/ expression data contains numeric values with decimals, indicating that it is normalized (not count data), so we will use the limma package for subsequent DEA and GSEA.
+The assay data & expression data contain numeric values with decimals, indicating that the data is normalized (not count data), so we will use the limma package for subsequent DEA and GSEA.
 
 ## 2. Extract expression and phenotype data.
 ```{r get_exprs_info}
@@ -57,13 +57,15 @@ any(is.na(pheno_data))
 ```
 
 ## 3. Clean and verify group labels.
-First we chose the characteristics of the data set for analysis (disease state: PD or psPD). We then cleaned up the content of that column by removing the "disease state: " part and retaining only the actual diagnostic, confirmed the clean-up with table().
+First we chose the desired phenotypic characteristics to be used for analysis (disease state: PD or psPD). We then cleaned up the content of that column by removing the "disease state: " text and retaining only the actual diagnostic, which is then confirmed with table().
 ```{r data_cleanup}
 diagnosis_df<- pheno_data %>% dplyr::select(characteristics_ch1.1) 
-diagnosis_df$characteristics_ch1.1 <- gsub("disease state: ", "", diagnosis_df$characteristics_ch1.1) 
+diagnosis_df$characteristics_ch1.1 <- gsub("disease state: ", "", diagnosis_df$characteristics_ch1.1)  #pattern, replacement, data
 table(diagnosis_df)
 diagnosis<-diagnosis_df$characteristics_ch1.1 
 ```
+The variable 'diagnosis' is assigned as a list for downstream use.
+
 
 ## 4. Create design matrix WITHOUT INTERCEPT (each group gets its own column).
 ```{r design_matrix}
@@ -84,6 +86,7 @@ This way, the column names were assigned by alphabetical order, which also worke
 Before proceeding with DEA, we need to check if the column names of expression data and row names of design matrix aligns properly, as those contain the sample names. This is required by lmFit! If they don't align, we can reorder it:
 expr_data <- expr_data[, rownames(design)]
 
+
 ## 5. Differential expression analysis with LIMMA package.
 After preparing and ensuring the expression matrix and design matrix were properly aligned, we can now perform DEA using LIMMA.
 
@@ -100,7 +103,7 @@ Here we compare the average expression in PD, MINUS the average expression in ps
 
 ```{r dea}
 fit <- lmFit(expr_data, design) 
-contrast_matrix <- makeContrasts(PD - psPD, levels=design) 
+contrast_matrix <- makeContrasts(psPD - PD, levels=design) 
 fit2 <- contrasts.fit(fit, contrast_matrix) 
 fit2 <- eBayes(fit2)
 ```
@@ -129,15 +132,8 @@ We look at absolute value bc log fold-change is positive for upregulation and ne
 write.csv(results, "DE_results_PD_vs_psPD.csv") 
 ```
 
-## 8. Visualization with Basic Volcano Plot.
-```{r basic_volcano_plot}
-ggplot(results, aes(logFC, -log10(adj.P.Val))) +
-  geom_point(aes(color=abs(logFC) > 1 & adj.P.Val < 0.05)) +
-  scale_color_manual(values=c("gray","red")) +
-  geom_vline(xintercept=c(-1,1), linetype="dashed") +
-  geom_hline(yintercept = -log10(0.05), linetype="dashed")
-```
-## 9 Enhanced Volcano Plot for Gene Expression analysis(Upregulated and Downregulated Genes)
+
+## 8. Enhanced Volcano Plot for Gene Expression analysis(Upregulated and Downregulated Genes)
 
 The enhanced volcano plot shows the overall significant gene expression, with pvalue >0.05.
 
@@ -150,13 +146,13 @@ Both up-regulated and down regulated genes are important to observe to aid in th
 ```{r enhanced volcano plot, expression analysis of pd vs psPD}
 
 EnhancedVolcano(results,
-                lab = rownames(results),                       # Probe IDs as labels
+                lab = rownames(results),                   # Probe IDs as labels
                 x = 'logFC',          
                 y = 'P.Value', 
                 ylim = c(0, 10),                           # Sets y-axis limit to -log10(p) = 10
                 xlab = bquote(~Log[2]~ 'fold change'),     #label for x axis
                 ylab = bquote(~-Log[10]~italic(P)),        #label for y axix
-                title = 'PD vs psPD Differential Expression',
+                title = 'psPD vs PD Differential Expression',
                 subtitle = "Enhanced Volcano using limma",
                 subtitleLabSize = 10,                      #font size of subtitle
                 FCcutoff = 1,                              # Fold change threshold (|log2FC| > 1)
@@ -166,7 +162,6 @@ EnhancedVolcano(results,
                 col = c("black", "grey30", "royalblue", "red2"),
                 colAlpha = 0.7,
                 legendPosition = 'right')+
-#  scale_x_continuous(trans = 'reverse') +                  # Properly reverses x-axis
   theme_minimal(base_size = 14)
 
 ```
