@@ -41,7 +41,7 @@ gset[[idx]] extracts the data from the desired folder, effectively erasing one e
 Some data exploratory to decide analysis method:
 ```{r exploration, echo=TRUE}
 summary(gset)
-dim(gset)
+dim(gset) # 750 features (genes), 48 samples
 expr_data <- exprs(gset)
 expr_df <- as.data.frame(expr_data)
 head(expr_df)
@@ -55,16 +55,18 @@ pheno_data <- pData(gset) # Get phenotype data as df
 any(is.na(expr_data))
 any(is.na(pheno_data))
 ```
+We check if whether or not there exist any NAs in the entirety of each data frame. Both return FALSE, so we do not need to handle any missing data at this time. 
+
 
 ## 3. Clean and verify group labels.
-First we chose the desired phenotypic characteristics to be used for analysis (disease state: PD or psPD). We then cleaned up the content of that column by removing the "disease state: " text and retaining only the actual diagnostic, which is then confirmed with table().
+First, we chose the desired phenotypic characteristics to be used for analysis (disease state: PD or psPD). We then cleaned up the content of that column by removing the "disease state: " text and retaining only the actual diagnostic ("PD" or "psPD"), which is then confirmed with table().
 ```{r data_cleanup}
 diagnosis_df<- pheno_data %>% dplyr::select(characteristics_ch1.1) 
 diagnosis_df$characteristics_ch1.1 <- gsub("disease state: ", "", diagnosis_df$characteristics_ch1.1)  #pattern, replacement, data
 table(diagnosis_df)
 diagnosis<-diagnosis_df$characteristics_ch1.1 
 ```
-The variable 'diagnosis' is assigned as a list for downstream use.
+These diagnoses are assigned to the variable 'diagnosis' as a list for downstream use.
 
 
 ## 4. Create design matrix WITHOUT INTERCEPT (each group gets its own column).
@@ -75,11 +77,11 @@ print(colnames(design))
 all(colnames(expr_data) == rownames(design))
 ```
 
-We made a design matrix WITHOUT INTERCEPT (each group gets its own column). The intercept is essentially the "reference" (or baseline) group, from which we will base the comparisons on (example: evaluate how different group B is compared to group A). 
+To work with limaa DEA, we first need a design matrix. We made a design matrix WITHOUT INTERCEPT (each group gets its own column). The intercept is essentially the "reference" (or baseline) group, from which we will base the comparisons on (example: evaluate how different group B is compared to group A). 
 
-In this case if we make a design matrix with intercept, the 'PD' group will become the baseline and essentially "locks" the comparison to only seeing the relative difference from 'psPD' to 'PD'. This will prevent any other down-stream customization for analysis (psPD to PD, PD to psPD, psPD/2 to PD,...), hence why we needed a design matrix WITHOUT intercept.
+If we make a design matrix with intercept, the 'PD' group will become the baseline and essentially "locks" the comparison to only seeing the relative difference from 'psPD' to 'PD'. This will prevent any other down-stream customization of analysis (psPD to PD, PD to psPD, psPD/2 to PD,...), hence why we needed a design matrix WITHOUT intercept.
 
-Then we needed correctly name the column names as the values within the diagnosis column ('PD' or 'psPD'). First we converted the values in 'diagnosis' column to categorical factors, extracted those unique factors, cleaned up those factors to make it appropriate for column names (by removing white space, parenthesis,...). 
+Then we needed to correctly name the column names as the values within the diagnosis column ('PD' or 'psPD'). First we converted the values in 'diagnosis' column to categorical factors, extracted those unique factors, cleaned up those factors to make it appropriate for column names (by removing white space, parenthesis,...). 
 
 This way, the column names were assigned by alphabetical order, which also worked with the design matrix was also made based on alphabetical order.
 
