@@ -62,9 +62,9 @@ print(colnames(design))  # Should show [1] "PD"   "psPD"
 
 # 5. LIMMA analysis -----------------------------------------------------------------
 fit <- lmFit(expr_data, design)  # Linear model for large dataset.  ## is it cross matching the sample names?
-contrast_matrix <- makeContrasts(PD - psPD, levels=design) # Defines the names of the parameters to be used downstream for contrast.
-# Here we compare the average expression in PD, MINUS the average expression in psPD.
-# AKA to compare the gene expression in PD relative to psPD.
+contrast_matrix <- makeContrasts(psPD - PD, levels=design) # Defines the names of the parameters to be used downstream for contrast.
+# Here we compare the average expression in psPD, MINUS the average expression in PD.
+# AKA to compare the gene expression in psPD relative to PD.
 # levels=design is telling the program to use the columns of the design matrix 
 # as the basis for the contrast. 
 # So the column names become the available LEVELS to use for comparison.
@@ -106,22 +106,24 @@ ggplot(results, aes(logFC, -log10(adj.P.Val))) +
 
 
 # 9. Enhanced Volcano Plot --------------------------------
-#EnhancedVolcano(res,
-#                 lab = rownames(res),
-#                 x = 'logFC',
-#                 y = 'P.Value',
-#                 xlab = bquote(~Log[2]~ 'fold change'),
-#                 title = NULL,
-#                 FCcutoff = 1,
-#                 pCutoff = .05,
-#                 drawConnectors = T,
-#                 widthConnectors = 0.1,
-#                 colConnectors = 'black', 
-#                 labSize = 5, 
-#                 pointSize = 1,
-#                 legendPosition = 'none',
-#                 subtitle = "",
-#                 ylim = c(0, -log10(10e-11))) + scale_x_reverse()
+EnhancedVolcano(results,
+                lab = rownames(results),                       # Probe IDs as labels
+                x = 'logFC',          
+                y = 'P.Value', 
+                ylim = c(0, 10),                           # Sets y-axis limit to -log10(p) = 10
+                xlab = bquote(~Log[2]~ 'fold change'),     #label for x axis
+                ylab = bquote(~-Log[10]~italic(P)),        #label for y axix
+                title = 'psPD vs PD Differential Expression',
+                subtitle = "Enhanced Volcano using limma",
+                subtitleLabSize = 10,                      #font size of subtitle
+                FCcutoff = 1,                              # Fold change threshold (|log2FC| > 1)
+                pCutoff = 0.05,                            # Significance threshold
+                pointSize = 1,                             #size of plot points
+                labSize = 3,                               #size of labels for plot points
+                col = c("black", "grey30", "royalblue", "red2"),
+                colAlpha = 0.7,
+                legendPosition = 'right')+
+  theme_minimal(base_size = 14)
 
 
 
