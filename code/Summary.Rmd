@@ -104,32 +104,33 @@ Here we compare the average expression in psPD, MINUS the average expression in 
 - Finally, we moderated and normalized the results using eBayes() to obtain more reliable p-values.
 
 ```{r dea}
-fit <- lmFit(expr_data, design) 
+fit <- lmFit(expr_data, design)              # Linear model for large data sets
 contrast_matrix <- makeContrasts(psPD - PD, levels=design) 
-fit2 <- contrasts.fit(fit, contrast_matrix) 
-fit2 <- eBayes(fit2)
+fit2 <- contrasts.fit(fit, contrast_matrix)  #statistics output
+fit2 <- eBayes(fit2)                         #adjustment
 ```
 
 
 ## 6. Get results (top differentially expressed genes)
 Extract results using topTable() to identify significant genes.
 
-topTable extracts top ranked genes from fit2 lm
+topTable extracts top ranked genes from fit2 lm. 
 
-number = Inf means list all the genes possible (or can specify limited number of genes)
+number = Inf (infinity) tells it to list all the genes possible. 
 
-adjust.method() specifies method for adjusting p-value. BH adjustment compares each p-value to a critical value/threshold and accounts for multiple testing error (increasing likeliness of erroneous correlation due to large number of samples).
+adjust.method= specifies the method for adjusting p-value. BH adjustment compares each p-value to a critical value/threshold and accounts for multiple testing error (increasing likeliness of erroneous correlation due to large number of samples).
 ```{r results_extraction}
-results <- topTable(fit2, number=Inf, adjust.method="BH") 
-sig_genes <- results[results$adj.P.Val < 0.05 & abs(results$logFC) > 1, ]
+results <- topTable(fit2, number=Inf, adjust.method="BH")                   # top genes from fit2, all of them
+sig_genes <- results[results$adj.P.Val < 0.05 & abs(results$logFC) > 1, ]   # filter by significance thresholds
 ```
-Indexing results df to select for expression changes that fall into specified criteria:
+Finally, we index the results data frame for only the genes with expression changes that meet specified significance criteria:
 
 adjusted p-value < 0.05 and absolute of log fold-change greater than 1. 
 
-We look at absolute value bc log fold-change is positive for upregulation and negative for downregulation, and we care about both.
+We look at absolute fold-change values because the log fold-change is positive for upregulation and negative for downregulation, and we care about both.
 
 ## 7. Save results.
+We can now save the DEA results.
 ```{r export_results}
 write.csv(results, "DE_results_PD_vs_psPD.csv") 
 ```
@@ -137,13 +138,13 @@ write.csv(results, "DE_results_PD_vs_psPD.csv")
 
 ## 8. Enhanced Volcano Plot for Gene Expression analysis(Upregulated and Downregulated Genes)
 
-The enhanced volcano plot shows the overall significant gene expression, with pvalue >0.05.
+The enhanced volcano plot shows the overall distribution of gene expression, with red dots being genes that meet the significance criteria.
 
-The right side shows the up-regulated genes(in red) that have a log fold change of >0; where these genes are unregulated in psPD when compared to pd.
+The right side shows the up-regulated genes (in red) that have a log fold change of >1; where these genes are upregulated in psPD when compared to PD.
 
-Whereas the left side shows the down regulated genes that have a log fold change of <0; where these genes are down regulated in psPD when compared to pd.
+Whereas the left side shows the down regulated genes that have a log fold change of < -1; where these genes are down-regulated in psPD when compared to PD.
 
-Both up-regulated and down regulated genes are important to observe to aid in the understanding of the difference in gene expression when comparing the pseudo pd to actual pd in patients. Helps us develop patterns of recognition of psPD cases based on the state of the gene (upregualted vs downregulated)
+Both up-regulated and down-regulated genes are important to observe to aid in the understanding of the difference in gene expression when comparing the pseudo PD to actual PD in patients. This helps us develop patterns of recognition of psPD cases based on the expression of the gene.
 
 ```{r enhanced volcano plot, expression analysis of pd vs psPD}
 
