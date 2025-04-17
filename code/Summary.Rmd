@@ -92,10 +92,10 @@ expr_data <- expr_data[, rownames(design)]
 ## 5. Differential expression analysis with LIMMA package.
 After preparing and ensuring the expression matrix and design matrix were properly aligned, we can now perform DEA using LIMMA.
 
-- First we fitted the model using lmFit() to analyze how gene expression is affected by experimental factors (PD vs psPD).
+- First we fitted the model using lmFit() to analyze how gene expression is affected by experimental factors (psPD vs PD).
 
 - Then, we applied contrasts with contrasts.fit() to test specific differences. 
-Here we compare the average expression in PD, MINUS the average expression in psPD, aka to compare the gene expression in PD relative to psPD. 
+Here we compare the average expression in psPD, MINUS the average expression in PD, aka to compare the gene expression in psPD relative to PD. 
 
   - The part 'levels=design' is telling the program to use the columns of the design matrix as the basis for the contrast, so the column names become the available LEVELS to use for comparison.
   
