@@ -77,7 +77,7 @@ print(colnames(design))
 all(colnames(expr_data) == rownames(design))
 ```
 
-To work with limaa DEA, we first need a design matrix. We made a design matrix WITHOUT INTERCEPT (each group gets its own column). The intercept is essentially the "reference" (or baseline) group, from which we will base the comparisons on (example: evaluate how different group B is compared to group A). 
+To work with limma's DEA, we first need a design matrix. We made a design matrix WITHOUT INTERCEPT (each group gets its own column). The intercept is essentially the "reference" (or baseline) group, from which we will base the comparisons on (example: evaluate how different group B is compared to group A). 
 
 If we make a design matrix with intercept, the 'PD' group will become the baseline and essentially "locks" the comparison to only seeing the relative difference from 'psPD' to 'PD'. This will prevent any other down-stream customization of analysis (psPD to PD, PD to psPD, psPD/2 to PD,...), hence why we needed a design matrix WITHOUT intercept.
 
