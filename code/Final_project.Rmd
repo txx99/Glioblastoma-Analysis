@@ -42,7 +42,7 @@ Some data exploratory to decide analysis method:
 
 
 ## 2. Extract expression and phenotype data and initial data exploration.
-```{r get_exprs_info, echo=TRUE}
+```{r get_exprs_info, echo=TRUE, fig.cap="Boxplot of expression data"}
 expr_data <- exprs(gset)  # Get expression matrix as df
 pheno_data <- pData(gset) # Get phenotype data as df
 any(is.na(expr_data))
@@ -60,7 +60,7 @@ We performed quality check of exprs data
 Interpretation: want a similar distribution across our samples; medians are aligned
 Suggests data is comparable across our samples; no technical bias
 
-```{r pca}
+```{r pca, fig.cap="PCA plot of expression data"}
 pca <- prcomp(t(expr_data), scale. = TRUE)
 pca_df <- data.frame(pca$x, Sample = rownames(pData(gset)))
 
@@ -150,7 +150,7 @@ write.csv(results, "DE_results_PD_vs_psPD.csv")
 ```
 
 ## 6. Visualization with Basic Volcano Plot.
-```{r basic_volcano_plot}
+```{r basic_volcano_plot, fig.cap="Basic Volcano Plot of differential expressed genes between psPD and PD"}
 ggplot(results, aes(logFC, -log10(adj.P.Val))) +
   geom_point(aes(color=abs(logFC) > 1 & adj.P.Val < 0.05)) +
   scale_color_manual(values=c("gray","red")) +
@@ -167,7 +167,7 @@ Whereas the left side shows the down regulated genes that have a log fold change
 
 Both up-regulated and down regulated genes are important to observe to aid in the understanding of the difference in gene expression when comparing the pseudo pd to actual pd in patients. Helps us develop patterns of recognition of psPD cases based on the state of the gene (upregualted vs downregulated)
 
-```{r enhanced volcano plot, expression analysis of pd vs psPD}
+```{r enhanced_volcano_plot, fig.cap="Enhanced volcano plot showing differential gene expression of 750 cancer marker genes processed. Genes on left are prevalent in PD samples, while genes on right are prevalent in psPD samples. nPD=27, npsPD=21, log2FC>1.0, p>0.05."}
 
 EnhancedVolcano(results,
                 lab = rownames(results),                       # Probe IDs as labels
@@ -264,7 +264,8 @@ gse <- gseGO(geneList=gene_list,
 We used dotplot() to visualize GSEA, showing the top 10 most significantly enriched gene sets, splitting the plot into 2 column frames (on same row), one for activated/up-regulated gene sets and the other for suppressed/down-regulated gene sets.
 
 NOTE: If we don't split, the plot only shows ranking of enrichment score or stat significance, without accounting for whether the gene set is up or down-regulated. Then we can't see which pathways are more active in PD or psPD.
-```{r GSEA_visualization, fig.height=7}
+```{r GSEA_visualization, fig.height=7, fig.cap="Dotplot showing gene ontology terms based on top 10 enriched gene sets for pseudoPD (left) and PD (right). 
+"}
 dotplot(gse,                # GSEA results
         showCategory=10,    # Show top 10 most significantly enriched gene sets
         split=".sign") +    # Splits into 2 frame, activated/up-regulated vs one suppressed/down-regulated.
