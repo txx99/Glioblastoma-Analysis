@@ -1,7 +1,7 @@
 ---
 title: "Summary"
 author: ""
-output: pdf_document
+output: html_document
 date: "2025-04-15"
 ---
 Introduction: 
@@ -42,7 +42,7 @@ Some data exploratory to decide analysis method:
 
 
 ## 2. Extract expression and phenotype data and initial data exploration.
-```{r get_exprs_info, echo=TRUE, fig.cap="Boxplot of expression data"}
+```{r get_exprs_info, echo=TRUE}
 expr_data <- exprs(gset)  # Get expression matrix as df
 pheno_data <- pData(gset) # Get phenotype data as df
 any(is.na(expr_data))
@@ -51,6 +51,8 @@ summary(gset)
 dim(gset)
 expr_df <- as.data.frame(expr_data)
 head(expr_df)
+```
+``` {r initial_box_plot, fig.cap="Boxplot of expression data"}
 boxplot(expr_data, main = "Boxplot of Expression Values", las=2, col="lightblue", outline=FALSE)
 ```
 The assayData/ expression data contains numeric values with decimals, indicating that it is normalized (not count data), so we will use the limma package for subsequent DEA and GSEA.
@@ -70,6 +72,7 @@ pca_plot <- pca_df %>%
               geom_text(size=2, vjust = 1.5) + 
               theme_classic() + 
               labs(title = "PCA of Samples")
+
 pca_plot
 ```
 This PCA plot wasn't very helpful. It might be because these are all glioblastoma samples so the differences weren't significant enough to be visualized on PCA plot.
@@ -151,11 +154,12 @@ write.csv(results, "DE_results_PD_vs_psPD.csv")
 
 ## 6. Visualization with Basic Volcano Plot.
 ```{r basic_volcano_plot, fig.cap="Basic Volcano Plot of differential expressed genes between psPD and PD"}
-ggplot(results, aes(logFC, -log10(adj.P.Val))) +
+basic_vol_plot <- ggplot(results, aes(logFC, -log10(adj.P.Val))) +
   geom_point(aes(color=abs(logFC) > 1 & adj.P.Val < 0.05)) +
   scale_color_manual(values=c("gray","red")) +
   geom_vline(xintercept=c(-1,1), linetype="dashed") +
   geom_hline(yintercept = -log10(0.05), linetype="dashed")
+basic_vol_plot
 ```
 ## 7. Enhanced Volcano Plot for Gene Expression analysis(Upregulated and Downregulated Genes)
 
@@ -192,7 +196,7 @@ EnhancedVolcano(results,
 ```
 
 
-# Part B: Gene Set Enrichment Analysis
+# Part C: Gene Set Enrichment Analysis
 Above, DEA was completed using limma from GEO dataset (GSE231994) and exported to a .csv file in 'DE_results_PD_vs_psPD.csv'. Here, we performed GSEA using clusterProfiler, specifically using Gene Ontology (GO) gene set.
 
 NOTE 1: In our class we use GSEA(), which is better if we're running enrichment on custom gene sets like Hallmark, MSigDB, KEGG,...
@@ -264,8 +268,7 @@ gse <- gseGO(geneList=gene_list,
 We used dotplot() to visualize GSEA, showing the top 10 most significantly enriched gene sets, splitting the plot into 2 column frames (on same row), one for activated/up-regulated gene sets and the other for suppressed/down-regulated gene sets.
 
 NOTE: If we don't split, the plot only shows ranking of enrichment score or stat significance, without accounting for whether the gene set is up or down-regulated. Then we can't see which pathways are more active in PD or psPD.
-```{r GSEA_visualization, fig.height=7, fig.cap="Dotplot showing gene ontology terms based on top 10 enriched gene sets for pseudoPD (left) and PD (right). 
-"}
+```{r GSEA_visualization, fig.height=7, fig.cap="Dotplot showing gene ontology terms based on top 10 enriched gene sets for pseudoPD (left) and PD (right)."}
 dotplot(gse,                # GSEA results
         showCategory=10,    # Show top 10 most significantly enriched gene sets
         split=".sign") +    # Splits into 2 frame, activated/up-regulated vs one suppressed/down-regulated.
