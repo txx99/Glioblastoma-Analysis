@@ -1,5 +1,6 @@
 # Glioblastoma-Analysis
-Re-analysing glioblastoma data as performed by Wang et al. 2023 for Data Mining Group Presentation.
+Re-analysing gene expression data from glioblastoma samples as performed by Wang et al. 2023 for a group project.
+We perform DEA using R's limma package and attempt to recreate the authors' enhanced volcano plot and gene ontology enrichment plot.
 
 
 Source Paper:
@@ -9,7 +10,6 @@ Source Code:
 https://github.com/WesleyWang913/Wang_et_al_2023_Acta_Neuro_Comms_Code?tab=readme-ov-file
 
 Source Data:
-Fig 2. Bulk nCounter expressional - GSE231994
+Fig 2c,2d. Bulk nCounter expressional data - GSE231994
 https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi
-Fig 5. GeoMx spatial data - GSE232050
-https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE232050
+

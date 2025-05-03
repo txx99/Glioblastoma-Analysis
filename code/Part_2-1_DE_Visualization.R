@@ -1,5 +1,7 @@
-#Analysis of nCounter Data
-#Prior to analysis please pass RCC data through Rosalind to perform normalization and differential analysis
+# Source code analysing data to produce Enhanced Volcano Plot + GEO enrichment plot
+
+# Analysis of nCounter Data (DEA results)
+# Prior to analysis please pass RCC data through Rosalind to perform normalization and differential analysis
 library(EnhancedVolcano)
 library(clusterProfiler)
 library(enrichplot)
