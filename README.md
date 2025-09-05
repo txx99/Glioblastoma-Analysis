@@ -3,7 +3,7 @@ Re-analysing gene expression data from glioblastoma samples as performed by Wang
 We perform DEA using R's limma package and attempt to recreate the authors' enhanced volcano plot and gene ontology enrichment plot.
 
 
-Source Paper:
+### Source Paper:
 Wang, W., Tugaoen, J. D., Fadda, P., Toland, A. E., Ma, Q., Elder, J. B., ... & Otero, J. J. (2023). Glioblastoma pseudoprogression and true progression reveal spatially variable transcriptional differences. Acta Neuropathologica Communications, 11(1), 192.
 https://doi.org/10.1186/s40478-023-01587-w
 
