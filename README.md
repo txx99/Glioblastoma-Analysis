@@ -1,5 +1,5 @@
 # Glioblastoma-Analysis
-Re-analysing gene expression data from glioblastoma samples as performed by Wang et al. 2023 for a group project.
+Re-analysing gene expression data from glioblastoma samples as performed by Wang et al. 2023.
 We perform DEA using R's limma package and attempt to recreate the authors' enhanced volcano plot and gene ontology enrichment plot.
 
 
